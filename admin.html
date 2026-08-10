@@ -28,7 +28,7 @@
         }
 
         .user-card.dead {
-            filter: grayscale(100%); background: #0f172a; border-color: #ef4444; opacity: 0.5;
+            filter: grayscale(100%); background: #0f172a; border-color: #ef4444; opacity: 0.6;
         }
         .user-card.dead::after {
             content: "☠️ 탈락 ㅠ.ㅠ"; position: absolute; top: 50%; left: 50%;
@@ -279,6 +279,7 @@
 
             players.forEach(p => {
                 let cardClass = p.isAlive ? "user-card" : "user-card dead";
+                // 탈락자도 물음표 대신 본인이 낸 손모양이 그대로 보이도록 수정
                 let choiceIcon = p.choice ? iconMap[p.choice] : "❓";
                 let chatBubble = p.chat ? `<div class="chat-bubble">💬 ${p.chat}</div>` : "";
 
@@ -287,7 +288,7 @@
                         ${chatBubble}
                         <div class="avatar">${p.avatar || '🐣'}</div>
                         <div class="nickname">${p.nickname}</div>
-                        <div class="choice-badge">${p.isAlive ? choiceIcon : (p.choice === '미제출' ? '⏰' : '-')}</div>
+                        <div class="choice-badge">${choiceIcon}</div>
                     </div>
                 `;
             });
