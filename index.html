@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SURVIVAL BATTLE</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent-yellow: #ffc107; --neon-blue: #00d2ff; --neon-red: #ff3366; --neon-green: #00ff66; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, #0a1128 0%, #1c1132 50%, #001f3f 100%);
+            color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 15px;
+            overflow: hidden;
+        }
+
+        .game-card {
+            width: 100%; max-width: 420px; background: rgba(22, 27, 34, 0.95);
+            border: 3px solid #00d2ff; border-radius: 20px; padding: 25px;
+            box-shadow: 0 0 25px rgba(0,210,255,0.4); text-align: center; backdrop-filter: blur(5px);
+            position: relative; z-index: 10;
+        }
+
+        .pixel-title { font-family: 'Press Start 2P', cursive; font-size: 18px; color: var(--accent-yellow); text-shadow: 2px 2px #ff0055; margin-bottom: 15px; }
+        input { width: 100%; padding: 15px; font-size: 16px; font-weight: bold; background: #090d16; border: 2px solid var(--neon-blue); color: #fff; border-radius: 10px; text-align: center; margin-bottom: 12px; }
+        
+        .btn-action { width: 100%; padding: 15px; font-size: 18px; font-weight: 900; background: linear-gradient(180deg, #00d2ff, #0072ff); border: none; border-radius: 10px; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #0040a0; }
+
+        .timer-badge {
+            background: #ff3366; color: #fff; font-weight: 900; font-size: 18px;
+            padding: 8px 16px; border-radius: 20px; display: inline-block; margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(255,51,102,0.8); animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+
+        .vs-container { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; background: #0d1117; padding: 15px; border-radius: 15px; border: 1px solid #30363d; }
+        .fighter-box { text-align: center; flex: 1; }
+        .fighter-title { font-size: 13px; color: #8b949e; margin-bottom: 6px; }
+        
+        .hand-display { 
+            font-size: 40px; background: #161b22; border-radius: 12px; padding: 8px; 
+            border: 2px solid #30363d; height: 85px; display: flex; align-items: center; justify-content: center; 
+        }
+
+        /* AI 로봇 캐릭터 이미지 스타일 */
+        .ai-robot-img {
+            max-height: 65px;
+            object-fit: contain;
+            animation: float 2s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .rps-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-rps { padding: 15px 5px; background: #21262d; border: 2px solid #00d2ff; border-radius: 12px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .btn-rps span { display: block; font-size: 26px; margin-bottom: 4px; }
+
+        .result-banner { font-size: 24px; font-weight: 900; margin-top: 15px; }
+        .win-text { color: var(--neon-green); text-shadow: 0 0 10px rgba(0,255,102,0.5); }
+        .lose-text { color: var(--neon-red); text-shadow: 0 0 10px rgba(255,51,102,0.5); }
+        .revive-text { color: var(--accent-yellow); text-shadow: 0 0 10px rgba(255,193,7,0.5); }
+
+        .chat-box { margin-top: 20px; display: flex; gap: 8px; }
+        .chat-input { margin-bottom: 0; padding: 10px; font-size: 14px; text-align: left; }
+        .btn-chat { width: 80px; padding: 10px; font-size: 14px; background: #ff007f; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; }
+
+        .footer-logo {
+            margin-top: 20px; font-size: 13px; font-weight: 900;
+            color: #94a3b8; letter-spacing: 1.5px; opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <div class="pixel-title">🎮 AI SURVIVAL</div>
+
+        <div id="join-area">
+            <input type="text" id="nickname" placeholder="닉네임 / 소속 입력">
+            <button class="btn-action" onclick="joinGame()">입장하기</button>
+        </div>
+
+        <div id="game-area" style="display:none;">
+            <div id="round-title" style="font-size:18px; color:var(--accent-yellow); font-weight:900;">ROUND 1</div>
+            <div id="timer-box" class="timer-badge" style="display:none;">⏳ 남은 시간: <span id="timer-count">5</span>초</div>
+            <div id="status" style="margin:8px 0; font-size:15px;">호스트의 라운드 시작을 기다리는 중...</div>
+
+            <div class="vs-container">
+                <div class="fighter-box">
+                    <div class="fighter-title" id="my-title">나 (PLAYER)</div>
+                    <div id="my-hand" class="hand-display">❓</div>
+                </div>
+                <div style="font-family:'Press Start 2P'; color:var(--neon-red); font-size:18px;">VS</div>
+                <div class="fighter-box">
+                    <div class="fighter-title">AI ROBOT</div>
+                    <div id="ai-hand" class="hand-display">
+                        <img src="ai-robot.png" alt="AI Robot" class="ai-robot-img">
+                    </div>
+                </div>
+            </div>
+
+            <div id="choice-buttons" class="rps-grid" style="display:none;">
+                <button class="btn-rps" onclick="sendChoice('가위')"><span>✌️</span>가위</button>
+                <button class="btn-rps" onclick="sendChoice('바위')"><span>✊</span>바위</button>
+                <button class="btn-rps" onclick="sendChoice('보')"><span>🖐️</span>보</button>
+            </div>
+
+            <div id="result-text" class="result-banner"></div>
+
+            <div class="chat-box">
+                <input type="text" id="chat-input" class="chat-input" placeholder="메시지 입력 (스크린 표출)" onkeypress="if(event.keyCode==13) sendChat()">
+                <button class="btn-chat" onclick="sendChat()">전송</button>
+            </div>
+        </div>
+
+        <div class="footer-logo">모바일. CX인재개발실</div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myName = "";
+        let isAlive = true;
+        const iconMap = { '가위': '✌️', '바위': '✊', '보': '🖐️', '미제출': '⏰' };
+        const aiDefaultHTML = '<img src="ai-robot.png" alt="AI Robot" class="ai-robot-img">';
+
+        function joinGame() {
+            myName = document.getElementById('nickname').value;
+            if(!myName) return alert('닉네임을 입력하세요!');
+            socket.emit('join', myName);
+            document.getElementById('join-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+        }
+
+        function sendChoice(choice) {
+            socket.emit('makeChoice', choice);
+            document.getElementById('choice-buttons').style.display = 'none';
+            document.getElementById('my-hand').innerText = iconMap[choice];
+            document.getElementById('status').innerText = "제출 완료! 결과를 기다립니다...";
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            if(input.value.trim()) {
+                socket.emit('sendChat', input.value.trim());
+                input.value = "";
+            }
+        }
+
+        function fireConfetti() {
+            var count = 200;
+            var defaults = { origin: { y: 0.7 } };
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, { particleCount: Math.floor(count * particleRatio) }));
+            }
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+
+        socket.on('roundStarted', (data) => {
+            document.getElementById('round-title').innerText = `ROUND ${data.round}`;
+            document.getElementById('result-text').innerText = "";
+            document.getElementById('ai-hand').innerHTML = aiDefaultHTML;
+            document.getElementById('timer-box').style.display = 'inline-block';
+            document.getElementById('timer-count').innerText = data.timeLeft;
+            
+            if (isAlive) {
+                document.getElementById('my-hand').innerText = "❓";
+                document.getElementById('choice-buttons').style.display = 'grid';
+                document.getElementById('status').innerText = "5초 안에 제출하세요!!";
+            } else {
+                document.getElementById('choice-buttons').style.display = 'none';
+                document.getElementById('status').innerText = "💀 탈락했습니다. (관전 중)";
+            }
+        });
+
+        socket.on('timerUpdate', (data) => {
+            document.getElementById('timer-count').innerText = data.timeLeft;
+            if (data.timeLeft <= 0) {
+                document.getElementById('choice-buttons').style.display = 'none';
+                document.getElementById('timer-box').style.display = 'none';
+                document.getElementById('status').innerText = "시간 종료! 결과를 기다리는 중...";
+            }
+        });
+
+        socket.on('roundResult', (data) => {
+            document.getElementById('choice-buttons').style.display = 'none';
+            document.getElementById('timer-box').style.display = 'none';
+            document.getElementById('ai-hand').innerText = iconMap[data.aiChoice] || '🤖';
+
+            let me = data.players.find(p => p.nickname === myName);
+            let winner = data.players.find(p => p.isAlive);
+
+            if (me) {
+                document.getElementById('my-title').innerText = `${me.avatar} ${me.nickname}`;
+                isAlive = me.isAlive;
+
+                if (data.isWinnerFound && isAlive) {
+                    document.getElementById('result-text').className = "result-banner win-text";
+                    document.getElementById('result-text').innerText = "🏆 FINAL WINNER! 🏆";
+                    document.getElementById('status').innerText = "축하합니다! 최후의 1인이 되셨습니다!";
+                    fireConfetti();
+                } else if (data.isWinnerFound && !isAlive) {
+                    document.getElementById('result-text').className = "result-banner win-text";
+                    document.getElementById('result-text').innerText = `👑 ${winner ? winner.nickname : '누군가'} 우승!`;
+                } else if (data.isRevived) {
+                    document.getElementById('result-text').className = "result-banner revive-text";
+                    document.getElementById('result-text').innerText = "🔥 전원 탈락으로 패자부활!";
+                } else if (isAlive) {
+                    document.getElementById('result-text').className = "result-banner win-text";
+                    document.getElementById('result-text').innerText = "🎉 생존 성공!";
+                } else {
+                    document.getElementById('result-text').className = "result-banner lose-text";
+                    if (me.choice === '미제출') {
+                        document.getElementById('result-text').innerText = "⏰ 시간초과 탈락!";
+                    } else {
+                        document.getElementById('result-text').innerText = "💀 탈락 ㅠ.ㅠ";
+                    }
+                }
+            }
+        });
+
+        socket.on('gameReset', () => {
+            isAlive = true;
+            document.getElementById('my-hand').innerText = "❓";
+            document.getElementById('ai-hand').innerHTML = aiDefaultHTML;
+            document.getElementById('result-text').innerText = "";
+            document.getElementById('timer-box').style.display = 'none';
+            document.getElementById('status').innerText = "게임이 리셋되었습니다.";
+        });
+    </script>
+</body>
+</html>
