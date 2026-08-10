@@ -161,7 +161,6 @@
 
     <div class="admin-footer-logo">모바일. CX인재개발실</div>
 
-    <!-- 우승 결과 모달 -->
     <div id="winner-modal" class="winner-modal">
         <div class="winner-card">
             <div style="font-family:'Press Start 2P'; color:#38bdf8; font-size:20px;">🏆 FINAL CHAMPION 🏆</div>
@@ -279,7 +278,6 @@
 
             players.forEach(p => {
                 let cardClass = p.isAlive ? "user-card" : "user-card dead";
-                // 탈락자도 물음표 대신 본인이 낸 손모양이 그대로 보이도록 수정
                 let choiceIcon = p.choice ? iconMap[p.choice] : "❓";
                 let chatBubble = p.chat ? `<div class="chat-bubble">💬 ${p.chat}</div>` : "";
 
