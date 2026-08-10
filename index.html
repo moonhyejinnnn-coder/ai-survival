@@ -74,7 +74,7 @@
             color: #94a3b8; letter-spacing: 1.5px; opacity: 0.8;
         }
 
-        /* 우승 팝업 모달 */
+        /* 우승자 전용 모달 */
         .winner-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
@@ -145,7 +145,7 @@
         <div class="footer-logo">모바일. CX인재개발실</div>
     </div>
 
-    <!-- 승자 / 패자 통합 우승 모달 팝업 -->
+    <!-- 우승자 전용 모달 팝업 -->
     <div id="winner-modal" class="winner-modal">
         <div class="winner-card">
             <div style="font-family:'Press Start 2P'; color:#38bdf8; font-size:14px;">🏆 FINAL CHAMPION 🏆</div>
@@ -154,7 +154,7 @@
             
             <div class="versus-detail">
                 <div>
-                    <div style="font-size:11px; color:#94a3b8;">승자 제출</div>
+                    <div style="font-size:11px; color:#94a3b8;">나의 제출</div>
                     <div id="winner-hand-icon" style="font-size:32px;">✊</div>
                 </div>
                 <div style="font-weight:900; color:#ef4444;">WIN vs LOSE</div>
@@ -164,7 +164,7 @@
                 </div>
             </div>
 
-            <div id="modal-congrat-text" style="font-size:16px; color:#10b981; font-weight:900;">최후의 1인 우승을 축하합니다!</div>
+            <div style="font-size:16px; color:#10b981; font-weight:900;">🎉 최후의 1인 우승을 축하합니다! 🎉</div>
             <div style="margin-top:15px; font-size:12px; color:#94a3b8; font-weight:bold;">모바일. CX인재개발실</div>
         </div>
     </div>
@@ -245,28 +245,23 @@
             document.getElementById('ai-hand').innerText = iconMap[data.aiChoice] || '🤖';
 
             let me = data.players.find(p => p.nickname === myName);
-            let winner = data.players.find(p => p.isAlive);
 
             if (me) {
                 document.getElementById('my-title').innerText = `${me.avatar} ${me.nickname}`;
+                if (me.choice) {
+                    document.getElementById('my-hand').innerText = iconMap[me.choice] || '❓';
+                }
                 isAlive = me.isAlive;
 
-                // 최종 승자 탄생 시 (승자/패자 공통 팝업 노출)
-                if (data.isWinnerFound && winner) {
-                    document.getElementById('winner-avatar').innerText = winner.avatar || '👑';
-                    document.getElementById('winner-name').innerText = winner.nickname;
-                    document.getElementById('winner-hand-icon').innerText = iconMap[winner.choice] || '✊';
+                // 내가 우승자일 때만 팝업 띄우기
+                if (data.isWinnerFound && isAlive) {
+                    document.getElementById('winner-avatar').innerText = me.avatar || '👑';
+                    document.getElementById('winner-name').innerText = me.nickname;
+                    document.getElementById('winner-hand-icon').innerText = iconMap[me.choice] || '✊';
                     document.getElementById('ai-hand-icon').innerText = iconMap[data.aiChoice] || '✌️';
-
-                    if (isAlive) {
-                        document.getElementById('modal-congrat-text').innerText = "🎉 축하합니다! 최후의 1인이 되셨습니다! 🎉";
-                        fireConfetti();
-                    } else {
-                        document.getElementById('modal-congrat-text').innerText = `👑 ${winner.nickname} 님이 최종 우승하셨습니다!`;
-                    }
                     document.getElementById('winner-modal').style.display = 'flex';
-                } 
-                else if (data.isRevived) {
+                    fireConfetti();
+                } else if (data.isRevived) {
                     document.getElementById('result-text').className = "result-banner revive-text";
                     document.getElementById('result-text').innerText = "🔥 전원 탈락으로 패자부활!";
                 } else if (isAlive) {
