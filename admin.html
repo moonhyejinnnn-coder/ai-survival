@@ -56,7 +56,6 @@
             margin: 12px 0; padding: 10px; height: 140px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* 관리자 화면 AI 로봇 캐릭터 이미지 스타일 */
         .admin-ai-img {
             max-height: 110px;
             object-fit: contain;
@@ -109,6 +108,14 @@
 
         .winner-name { font-size: 42px; font-weight: 900; color: #facc15; margin: 15px 0; text-shadow: 0 0 20px rgba(250, 204, 21, 0.8); }
 
+        .versus-box {
+            background: #0f172a; border-radius: 16px; padding: 20px 40px; margin: 20px 0;
+            display: flex; justify-content: space-around; align-items: center; border: 2px solid #334155;
+        }
+        .versus-item { text-align: center; }
+        .versus-item .label { font-size: 14px; color: #94a3b8; font-weight: bold; margin-bottom: 5px; }
+        .versus-item .hand { font-size: 50px; }
+
         .admin-footer-logo {
             text-align: center; font-size: 16px; font-weight: 900;
             color: #38bdf8; letter-spacing: 3px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
@@ -122,7 +129,7 @@
         <h1 style="font-family:'Press Start 2P'; color:#facc15; font-size:18px;">👑 SURVIVAL STAGE (<span id="round-display">ROUND 1</span>)</h1>
         <div>
             <button class="btn-ctrl btn-next" onclick="startRound()">▶️ 라운드 시작</button>
-            <button class="btn-ctrl btn-result" onclick="showResult()">⚡ AI 결과 공개</button>
+            <button class="btn-ctrl btn-result" onclick="showResult()">⚡ 게임 결과 공개</button>
             <button class="btn-ctrl btn-reset" onclick="resetGame()">🔄 전체 리셋</button>
         </div>
     </div>
@@ -154,13 +161,27 @@
 
     <div class="admin-footer-logo">모바일. CX인재개발실</div>
 
+    <!-- 우승 결과 모달 -->
     <div id="winner-modal" class="winner-modal">
         <div class="winner-card">
-            <div style="font-family:'Press Start 2P'; color:#38bdf8; font-size:20px;">FINAL CHAMPION</div>
+            <div style="font-family:'Press Start 2P'; color:#38bdf8; font-size:20px;">🏆 FINAL CHAMPION 🏆</div>
             <div id="winner-avatar" class="winner-avatar">👑</div>
             <div id="winner-name" class="winner-name">우승자 닉네임</div>
-            <div style="font-size:22px; color:#10b981; font-weight:900;">🎉 최후의 1인 우승을 축하합니다! 🎉</div>
-            <div style="margin-top:20px; font-size:14px; color:#94a3b8; font-weight:bold;">모바일. CX인재개발실</div>
+
+            <div class="versus-box">
+                <div class="versus-item">
+                    <div class="label">승자 제출 (WIN)</div>
+                    <div id="winner-hand-icon" class="hand">✊</div>
+                </div>
+                <div style="font-size:24px; font-weight:900; color:#ef4444; font-family:'Press Start 2P';">VS</div>
+                <div class="versus-item">
+                    <div class="label">AI 제출 (LOSE)</div>
+                    <div id="ai-hand-icon" class="hand">✌️</div>
+                </div>
+            </div>
+
+            <div style="font-size:24px; color:#10b981; font-weight:900;">🎉 최후의 1인 우승을 축하합니다! 🎉</div>
+            <div style="margin-top:20px; font-size:15px; color:#94a3b8; font-weight:bold;">모바일. CX인재개발실</div>
         </div>
     </div>
 
@@ -227,6 +248,9 @@
                 if (winner) {
                     document.getElementById('winner-avatar').innerText = winner.avatar || '👑';
                     document.getElementById('winner-name').innerText = winner.nickname;
+                    document.getElementById('winner-hand-icon').innerText = iconMap[winner.choice] || '✊';
+                    document.getElementById('ai-hand-icon').innerText = iconMap[data.aiChoice] || '✌️';
+                    
                     document.getElementById('winner-modal').style.display = 'flex';
                     startContinuousConfetti();
                 }
