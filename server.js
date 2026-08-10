@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path'); // Render 환경에서 정적 파일 경로 오류 방지
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,7 +9,6 @@ const io = new Server(server);
 
 app.use(express.static(__dirname));
 
-// 관리자 페이지 경로 (path.join 사용으로 Render/Linux 환경 완벽 대응)
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
@@ -27,16 +26,22 @@ function getAvatar(index) {
 }
 
 io.on('connection', (socket) => {
+    // 신규 접속자(관리자 포함)가 올 때 현재 상태 즉시 전송
+    socket.emit('updatePlayers', { players, round: currentRound });
+
     socket.on('join', (nickname) => {
         let playerIndex = players.length;
-        players.push({
+        let newPlayer = {
             id: socket.id,
             nickname: nickname,
             avatar: getAvatar(playerIndex),
             isAlive: true,
             choice: null,
             chat: ""
-        });
+        };
+        players.push(newPlayer);
+        
+        // 전체에 즉시 업데이트 알림
         io.emit('updatePlayers', { players, round: currentRound });
     });
 
@@ -64,16 +69,13 @@ io.on('connection', (socket) => {
     socket.on('startRound', () => {
         if (roundTimer) clearInterval(roundTimer);
 
-        // 이전 라운드 생존자 백업 (전원 탈락 대비 패자부활용)
         prevAlivePlayers = players.filter(p => p.isAlive).map(p => p.id);
-
         players.forEach(p => p.choice = null);
         timeLeft = 5;
 
         io.emit('roundStarted', { round: currentRound, timeLeft });
         io.emit('updatePlayers', { players, round: currentRound });
 
-        // 5초 타이머 시작
         roundTimer = setInterval(() => {
             timeLeft -= 1;
             io.emit('timerUpdate', { timeLeft });
@@ -91,20 +93,16 @@ io.on('connection', (socket) => {
 
         activePlayers.forEach(p => {
             if (!p.choice) {
-                // 5초 내 미제출자 탈락
                 p.choice = '미제출';
                 p.isAlive = false;
             } else {
                 let userChoice = p.choice;
-                
-                // AI를 무조건 이긴 경우에만 생존 (가위>보, 바위>가위, 보>바위)
                 let isWin = (
                     (userChoice === '가위' && aiChoice === '보') ||
                     (userChoice === '바위' && aiChoice === '가위') ||
                     (userChoice === '보' && aiChoice === '바위')
                 );
 
-                // 지거나 비긴 경우는 모두 탈락
                 if (!isWin) {
                     p.isAlive = false;
                 }
@@ -114,7 +112,6 @@ io.on('connection', (socket) => {
         let currentAlive = players.filter(p => p.isAlive);
         let isRevived = false;
 
-        // 전원 탈락 시 자동 패자부활
         if (activePlayers.length > 0 && currentAlive.length === 0) {
             players.forEach(p => {
                 if (prevAlivePlayers.includes(p.id)) {
@@ -157,7 +154,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// Render 등 클라우드 포트 자동 감지
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🎮 서버 실행 중: 포트 ${PORT}`);
